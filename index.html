@@ -38,6 +38,8 @@
     <symbol id="i-check" viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"/></symbol>
     <symbol id="i-portfolio" viewBox="0 0 24 24"><path d="M4 7a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V7Z"/><path d="M9 5V3h6v2M4 11h16M12 10v2"/></symbol>
     <symbol id="i-external" viewBox="0 0 24 24"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6m4-3h6v6m-11 5L21 3"/></symbol>
+    <symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M4.93 4.93l1.41 1.41m11.32 11.32l1.41 1.41M2 12h2m16 0h2M6.34 17.66l-1.41 1.41m14.14-14.14l-1.41 1.41"/></symbol>
+    <symbol id="i-moon" viewBox="0 0 24 24"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></symbol>
   </defs></svg>
 
   <main id="world" aria-label="Cloud Rail 3D tram driving game and portfolio"></main>
@@ -64,6 +66,13 @@
       </nav>
 
       <div class="top-actions">
+        <!-- Day / Night Mode Switcher -->
+        <button class="theme-switch-pill" id="theme-toggle-btn" title="Toggle Day / Night Mode (N)" aria-label="Toggle Day / Night Mode">
+          <svg class="sun-icon"><use href="#i-sun"/></svg>
+          <svg class="moon-icon" style="display:none"><use href="#i-moon"/></svg>
+          <span id="theme-btn-text">Night</span>
+        </button>
+
         <!-- Mode Switch: Story Scroll vs Free Drive -->
         <button class="mode-switch-pill active" id="mode-toggle-btn" title="Toggle between Scroll Story and Free Drive">
           <svg><use href="#i-portfolio"/></svg>

@@ -106,7 +106,76 @@ svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.6;stroke
   color:var(--gold);
 }
 
-.top-actions{display:flex;align-items:center;gap:20px}
+/* Theme Switch Pill (Day / Night) */
+.theme-switch-pill{
+  display:inline-flex;
+  align-items:center;
+  gap:7px;
+  background:rgba(235, 178, 92, 0.22);
+  border:1px solid rgba(244, 207, 140, 0.45);
+  padding:8px 14px;
+  border-radius:20px;
+  font-size:11px;
+  font-weight:600;
+  color:var(--gold);
+  backdrop-filter:blur(16px);
+  -webkit-backdrop-filter:blur(16px);
+  transition:all .45s cubic-bezier(0.16, 1, 0.3, 1);
+  pointer-events:auto;
+  cursor:pointer;
+}
+.theme-switch-pill svg{
+  width:15px;
+  height:15px;
+  transition:transform .4s ease;
+}
+.theme-switch-pill:hover{
+  background:rgba(235, 178, 92, 0.35);
+  transform:translateY(-1px) scale(1.02);
+  box-shadow:0 6px 16px rgba(244, 207, 140, 0.2);
+}
+.theme-switch-pill.is-night{
+  background:rgba(70, 95, 145, 0.35);
+  border-color:rgba(164, 214, 255, 0.45);
+  color:#c7e1ff;
+  box-shadow:0 0 15px rgba(130, 180, 255, 0.25);
+}
+.theme-switch-pill.is-night:hover{
+  background:rgba(85, 115, 175, 0.5);
+  box-shadow:0 6px 20px rgba(130, 180, 255, 0.35);
+}
+
+/* Night Mode Butter-Smooth Background and Theme Transitions */
+body{
+  transition:background 1.5s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+body.night-mode{
+  background:#09121e !important;
+}
+
+body.night-mode .story-card{
+  background:rgba(10, 18, 28, 0.38);
+  border-color:rgba(164, 214, 255, 0.22);
+  box-shadow:0 20px 50px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.08), 0 0 30px rgba(70, 110, 160, 0.12);
+}
+body.night-mode .project-item{
+  background:rgba(8, 14, 24, 0.35);
+  border-color:rgba(164, 214, 255, 0.18);
+}
+body.night-mode .skill-group,
+body.night-mode .contact-box{
+  background:rgba(8, 14, 24, 0.32);
+  border-color:rgba(164, 214, 255, 0.15);
+}
+body.night-mode .primary-pill{
+  background:#86c5ff;
+  color:#0b1d33;
+}
+body.night-mode .primary-pill:hover{
+  background:#b4dcff;
+}
+
+.top-actions{display:flex;align-items:center;gap:16px}
 .fund,.streak{display:flex;align-items:center;gap:10px}
 .fund>svg{color:var(--gold);width:22px;height:22px}
 .streak>svg{color:var(--green);width:21px;height:23px}

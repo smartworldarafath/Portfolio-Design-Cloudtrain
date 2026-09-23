@@ -7,10 +7,13 @@ export class ScrollController {
     this.isStoryMode = true;
     this.storyContainer = document.getElementById('portfolio-story-container');
 
-    // Initialize progress to match starting tram distance
-    const initialProgress = ((engineState.distance % routeLength) + routeLength) % routeLength / routeLength;
-    this.targetScrollProgress = initialProgress;
-    this.currentScrollProgress = initialProgress;
+    const maxScroll = this.storyContainer ? (this.storyContainer.scrollHeight - this.storyContainer.clientHeight) : 0;
+    const initialScrollRatio = (this.storyContainer && maxScroll > 0) ? (this.storyContainer.scrollTop / maxScroll) : 0;
+
+    // Anchor base distance so at scrollTop = 0, distance starts cleanly at starting tram position
+    this.baseDistance = engineState.distance - initialScrollRatio * routeLength;
+    this.targetScrollProgress = initialScrollRatio;
+    this.currentScrollProgress = initialScrollRatio;
 
     this.initEvents();
   }
@@ -52,50 +55,46 @@ export class ScrollController {
   setMode(storyMode) {
     this.isStoryMode = storyMode;
     if (storyMode && this.storyContainer) {
-      // Sync story scroll bar with current tram distance
-      const progress = ((this.state.distance % this.routeLength) + this.routeLength) % this.routeLength / this.routeLength;
-      this.currentScrollProgress = progress;
-      this.targetScrollProgress = progress;
       const maxScroll = this.storyContainer.scrollHeight - this.storyContainer.clientHeight;
-      if (maxScroll > 0) {
-        this.storyContainer.scrollTop = progress * maxScroll;
-      }
+      const currentScrollRatio = maxScroll > 0 ? (this.storyContainer.scrollTop / maxScroll) : 0;
+      // Re-anchor baseDistance so tram position continues seamlessly
+      this.baseDistance = this.state.distance - currentScrollRatio * this.routeLength;
+      this.currentScrollProgress = currentScrollRatio;
+      this.targetScrollProgress = currentScrollRatio;
     }
   }
 
   update(dt) {
     if (!this.isStoryMode) return;
 
-    // Calm, relaxed interpolation for story scroll (never jerky)
-    this.currentScrollProgress += (this.targetScrollProgress - this.currentScrollProgress) * Math.min(1, dt * 2.2);
+    // Smooth, relaxed interpolation for story scroll (never jerky)
+    this.currentScrollProgress += (this.targetScrollProgress - this.currentScrollProgress) * Math.min(1, dt * 2.8);
 
-    // Map scroll progress (0..1) to route distance
-    const targetDistance = this.currentScrollProgress * this.routeLength;
-    let diff = targetDistance - (this.state.distance % this.routeLength);
+    // Map scroll progress (0..1) to route distance from baseDistance
+    const targetDistance = this.baseDistance + (this.currentScrollProgress * this.routeLength);
+    const diff = targetDistance - this.state.distance;
 
-    // Handle cyclic loop difference
-    if (diff > this.routeLength / 2) diff -= this.routeLength;
-    if (diff < -this.routeLength / 2) diff += this.routeLength;
-
-    // If tram was stopped at station but user is scrolling away, release station lock
-    if (this.state.mode === 'station' && Math.abs(diff) > 2.5) {
+    // If tram was in station mode, release when scrolling in either direction
+    if (this.state.mode === 'station' && Math.abs(diff) > 1.5) {
       this.state.mode = 'driving';
       this.state.stationTime = 0;
       this.state.stationBoarded = true;
     }
 
-    // Limit maximum tram movement speed: gentle scenic cruise (max ~4.2 m/s or ~15 km/h)
-    const maxSpeedMetersPerSec = 4.2;
+    // Limit maximum tram movement speed: gentle scenic cruise (max ~4.8 m/s or ~17 km/h)
+    const maxSpeedMetersPerSec = 4.8;
     const maxStep = maxSpeedMetersPerSec * dt;
-    const step = Math.sign(diff) * Math.min(Math.abs(diff * 2.2 * dt), maxStep);
+    const step = Math.sign(diff) * Math.min(Math.abs(diff * 3.0 * dt), maxStep);
 
     if (Math.abs(diff) > 0.01) {
+      // When scrolling down: step > 0 (forward)
+      // When scrolling up: step < 0 (backward in reverse!)
       this.state.distance += step;
-      // Set gentle realistic speedometer display
+      // Set realistic speedometer display
       const computedSpeed = (Math.abs(step) / Math.max(dt, 0.001)) * 3.6;
-      this.state.speed = Math.min(15, computedSpeed * 0.75);
+      this.state.speed = Math.min(16, computedSpeed * 0.85);
     } else {
-      this.state.speed = Math.max(0, this.state.speed - dt * 2.5);
+      this.state.speed = Math.max(0, this.state.speed - dt * 3.0);
     }
   }
 

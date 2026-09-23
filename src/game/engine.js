@@ -219,12 +219,12 @@ import { portfolioData } from '../data/portfolioData.js';
     }));
     scene.add(sky);
     const starPositions = [];
-    for (let i = 0; i < 480; i++) {
-      const angle = random(0, TAU), height = random(.13, .93), horizontal = Math.sqrt(1 - height * height);
+    for (let i = 0; i < 750; i++) {
+      const angle = random(0, TAU), height = random(.08, .96), horizontal = Math.sqrt(1 - height * height);
       starPositions.push(Math.cos(angle) * horizontal * 1100, height * 1100, Math.sin(angle) * horizontal * 1100);
     }
     const starsGeometry = new THREE.BufferGeometry(); starsGeometry.setAttribute('position', new THREE.Float32BufferAttribute(starPositions, 3));
-    const stars = new THREE.Points(starsGeometry, new THREE.PointsMaterial({ color: '#fff1d6', size: 1.55, transparent: true, opacity: .72, depthWrite: false, fog: false }));
+    const stars = new THREE.Points(starsGeometry, new THREE.PointsMaterial({ color: '#fff5df', size: 1.8, transparent: true, opacity: 0.0, depthWrite: false, fog: false }));
     scene.add(stars);
     const moon = mesh(scene, new THREE.SphereGeometry(10, 40, 20), new THREE.MeshBasicMaterial({ color: '#fff0d8', fog: false }), 620, 150, -330);
     moon.castShadow = false;
@@ -234,7 +234,7 @@ import { portfolioData } from '../data/portfolioData.js';
       top: new THREE.Color('#495775'), horizon: new THREE.Color('#d4b1ad'), low: new THREE.Color('#a2b6ca'), fog: new THREE.Color('#b8b6c9'), sea: new THREE.Color('#428f98')
     };
     const midnight = {
-      top: new THREE.Color('#283651'), horizon: new THREE.Color('#818aa8'), low: new THREE.Color('#7a93aa'), fog: new THREE.Color('#7f8ea9'), sea: new THREE.Color('#346a80')
+      top: new THREE.Color('#0c1524'), horizon: new THREE.Color('#22334d'), low: new THREE.Color('#1c2a3f'), fog: new THREE.Color('#142030'), sea: new THREE.Color('#15293a')
     };
     const sea = new THREE.Mesh(new THREE.PlaneGeometry(2600, 2600, 90, 90), new THREE.ShaderMaterial({
       uniforms: seaUniforms,
@@ -741,7 +741,21 @@ import { portfolioData } from '../data/portfolioData.js';
     for(const z of [-.01,.15]) box(cat,M.darkWood,.48,.29,z,.013,.025,.055);
     const lantern=group(companion,-1.98,3.36,-3.35);beam(lantern,V(0,.8,0),V(0,.35,0),.024,M.brass);box(lantern,M.glow,0,0,0,.3,.45,.3);box(lantern,M.green,0,.29,0,.45,.1,.45);box(lantern,M.brass,0,-.28,0,.43,.08,.43);for(const x of [-.19,.19])for(const z of [-.19,.19])box(lantern,M.brass,x,0,z,.032,.55,.032);halo(lantern,0,0,0,2.4);
     bake(companion);companion.visible=false;
-    const interiorLight=new THREE.PointLight('#ffcf88',3.2,6,2);interiorLight.position.set(0,3.3,0);tram.add(interiorLight);
+    const interiorLight=new THREE.PointLight('#ffcf88',1.2,6,2);interiorLight.position.set(0,3.3,0);tram.add(interiorLight);
+
+    // Front headlight spotlight for night journeys
+    const headlight = new THREE.SpotLight('#ffe3a6', 0, 50, Math.PI / 3.6, 0.45, 1.5);
+    headlight.position.set(0, 1.7, 4.0);
+    const headlightTarget = new THREE.Object3D();
+    headlightTarget.position.set(0, 0.7, 28);
+    tram.add(headlight);
+    tram.add(headlightTarget);
+    headlight.target = headlightTarget;
+
+    // Rear lantern amber glow
+    const rearLight = new THREE.PointLight('#ff9344', 0, 12, 1.8);
+    rearLight.position.set(0, 1.68, -4.1);
+    tram.add(rearLight);
 
     $('loading-fill').style.width='74%';
     $('loading-status').textContent='Oliver is putting the kettle on...';
@@ -813,6 +827,37 @@ import { portfolioData } from '../data/portfolioData.js';
     const portfolioOverlay = new PortfolioOverlay(scrollCtrl);
     window.scrollController = scrollCtrl;
     window.portfolioOverlay = portfolioOverlay;
+
+    // Day / Night Theme State & Smooth Transition Controller
+    let isNight = false;
+    let nightTarget = 0.0;
+    let nightProgress = 0.0;
+
+    function setTheme(night, notify = true) {
+      isNight = night;
+      nightTarget = night ? 1.0 : 0.0;
+      document.body.classList.toggle('night-mode', isNight);
+      const btn = $('theme-toggle-btn');
+      if (btn) {
+        btn.classList.toggle('is-night', isNight);
+        const sun = btn.querySelector('.sun-icon');
+        const moon = btn.querySelector('.moon-icon');
+        const text = $('theme-btn-text');
+        if (sun && moon) {
+          sun.style.display = isNight ? 'none' : 'inline-block';
+          moon.style.display = isNight ? 'inline-block' : 'none';
+        }
+        if (text) text.textContent = isNight ? 'Day' : 'Night';
+        btn.setAttribute('aria-label', isNight ? 'Switch to Day Mode (N)' : 'Switch to Night Mode (N)');
+      }
+      if (notify) {
+        toast(isNight ? 'Night mode enabled' : 'Day mode enabled', 3, false, isNight ? 'Starlit skies & warm glowing headlights' : 'Golden coastal daylight');
+      }
+    }
+    function toggleTheme() { setTheme(!isNight); }
+    $('theme-toggle-btn')?.addEventListener('click', toggleTheme);
+    window.setTheme = setTheme;
+    window.toggleTheme = toggleTheme;
 
     const input={power:false,brake:false,left:false,right:false};
     let elapsed=0,subtitleUntil=0,toastUntil=0,lastUI=0,lastTime=performance.now(),wasHidden=false;
@@ -949,6 +994,7 @@ import { portfolioData } from '../data/portfolioData.js';
       if(dialog.open||state.transitioning)return;
       if(!event.repeat){
         if(code==='KeyP'){event.preventDefault();toggleAutopilot();}
+        if(code==='KeyN')toggleTheme();
         if(code==='KeyM')toggleSound();if(code==='KeyH')openGuide(true);if(code==='KeyC')cycleView();if(code==='KeyG')enterWorkshop();
       }
       if(state.paused||state.mode!=='driving')return;
@@ -1216,9 +1262,7 @@ import { portfolioData } from '../data/portfolioData.js';
         
         if (scrollCtrl.isStoryMode) {
           scrollCtrl.update(dt);
-        }
-        if(!state.transitioning){
-
+        } else if(!state.transitioning){
           if(state.mode==='driving')updateDriving(dt);
           else if(state.mode==='station')updateStation(dt);
           else updateWorkshop(dt);
@@ -1226,12 +1270,24 @@ import { portfolioData } from '../data/portfolioData.js';
         if(state.mode==='driving'||state.mode==='station'){updateTram(dt);updateCamera(dt);}
         else {tram.visible=true;doors.forEach(door=>door.position.z=2.49);}
         seaUniforms.time.value=elapsed;
-        const night=(1-Math.cos(elapsed/260))*.5;
+
+        // Butter-smooth Day / Night animated transition (ease-dampened)
+        nightProgress = damp(nightProgress, nightTarget, 1.8, dt);
+        const night = nightProgress;
         for(const key of ['top','horizon','low'])sky.material.uniforms[key+'Color'].value.lerpColors(twilight[key],midnight[key],night);
         scene.fog.color.lerpColors(twilight.fog,midnight.fog,night);
         seaUniforms.deep.value.lerpColors(twilight.sea,midnight.sea,night);
         seaUniforms.mist.value.copy(scene.fog.color);
-        sun.intensity=lerp(3.05,.85,night);hemi.intensity=lerp(2.1,1.15,night);stars.material.opacity=lerp(.62,.95,night);
+        sun.intensity=lerp(3.05,.45,night);
+        sun.color.lerpColors(new THREE.Color('#ffcca0'), new THREE.Color('#a3c3e8'), night);
+        hemi.intensity=lerp(2.1,.85,night);
+        stars.material.opacity=lerp(0.0,.95,night);
+        stars.visible=stars.material.opacity>0.01;
+        headlight.intensity=lerp(0.0, 5.5, night);
+        rearLight.intensity=lerp(0.0, 2.0, night);
+        interiorLight.intensity=lerp(1.2, 4.2, night);
+        M.glow.emissiveIntensity=lerp(0.5, 2.2, night);
+        M.window.emissiveIntensity=lerp(0.2, 1.3, night);
         clouds.forEach(c=>{c.root.position.x=c.x+Math.sin(elapsed*.016+c.phase)*4.5;});
         birds.forEach((b,i)=>{
           const angle=elapsed*b.speed+b.phase;b.root.position.set(49+Math.cos(angle)*b.radius,b.height+Math.sin(angle*2)*2,-104+Math.sin(angle)*b.radius*.75);b.root.rotation.y=-angle;
