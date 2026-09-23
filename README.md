@@ -118,7 +118,7 @@ flowchart TD
 ## 📂 Project Directory Structure
 
 ```
-d:/Antigravity (WEB Data)/Rail style portfolio/
+Portfolio-Design-Cloudtrain/
 ├── index.html                   # Main entry point with semantic markup & importmap
 ├── package.json                 # Project configuration & npm scripts
 ├── README.md                    # Professional engineering documentation
