@@ -1,0 +1,20 @@
+{
+  "name": "cloud-rail-portfolio",
+  "version": "1.0.0",
+  "description": "Cloud Rail - 3D Miniature Tram World & Creative Developer Portfolio",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "keywords": [
+    "threejs",
+    "webgl",
+    "portfolio",
+    "3d",
+    "creative-developer",
+    "tram"
+  ],
+  "author": "Alex Morgan",
+  "license": "MIT"
+}

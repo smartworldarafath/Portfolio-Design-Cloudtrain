@@ -1,0 +1,20 @@
+# Dependencies
+node_modules/
+.DS_Store
+*.log
+
+# Scratch scripts & build helpers
+/extracted/
+/inspect_*.js
+/find_*.js
+/build_*.js
+/test_*.js
+/unpack_*.js
+/extract_markup.js
+/site.html
+
+# Raw root downloads
+/app.js*
+/engine.js*
+/style.css*
+/three.module.js
