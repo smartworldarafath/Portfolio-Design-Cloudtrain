@@ -3,17 +3,24 @@ export class ScrollController {
   constructor(engineState, routeLength) {
     this.state = engineState;
     this.routeLength = routeLength;
-    this.scrollVelocity = 0;
     this.isStoryMode = true;
     this.storyContainer = document.getElementById('portfolio-story-container');
 
-    const maxScroll = this.storyContainer ? (this.storyContainer.scrollHeight - this.storyContainer.clientHeight) : 0;
-    const initialScrollRatio = (this.storyContainer && maxScroll > 0) ? (this.storyContainer.scrollTop / maxScroll) : 0;
+    // Anchor starting distance so at scrollTop = 0, distance starts cleanly at starting tram position
+    this.startDistance = engineState.distance;
+    this.targetScrollProgress = 0;
+    this.currentScrollProgress = 0;
 
-    // Anchor base distance so at scrollTop = 0, distance starts cleanly at starting tram position
-    this.baseDistance = engineState.distance - initialScrollRatio * routeLength;
-    this.targetScrollProgress = initialScrollRatio;
-    this.currentScrollProgress = initialScrollRatio;
+    // Check if container already has scroll position on refresh
+    if (this.storyContainer) {
+      const maxScroll = this.storyContainer.scrollHeight - this.storyContainer.clientHeight;
+      if (maxScroll > 0 && this.storyContainer.scrollTop > 0) {
+        const ratio = Math.min(1, Math.max(0, this.storyContainer.scrollTop / maxScroll));
+        this.targetScrollProgress = ratio;
+        this.currentScrollProgress = ratio;
+        this.startDistance = engineState.distance - ratio * routeLength;
+      }
+    }
 
     this.initEvents();
   }
@@ -57,8 +64,8 @@ export class ScrollController {
     if (storyMode && this.storyContainer) {
       const maxScroll = this.storyContainer.scrollHeight - this.storyContainer.clientHeight;
       const currentScrollRatio = maxScroll > 0 ? (this.storyContainer.scrollTop / maxScroll) : 0;
-      // Re-anchor baseDistance so tram position continues seamlessly
-      this.baseDistance = this.state.distance - currentScrollRatio * this.routeLength;
+      // Re-anchor startDistance so tram position continues seamlessly from where it currently is
+      this.startDistance = this.state.distance - currentScrollRatio * this.routeLength;
       this.currentScrollProgress = currentScrollRatio;
       this.targetScrollProgress = currentScrollRatio;
     }
@@ -67,35 +74,45 @@ export class ScrollController {
   update(dt) {
     if (!this.isStoryMode) return;
 
-    // Smooth, relaxed interpolation for story scroll (never jerky)
-    this.currentScrollProgress += (this.targetScrollProgress - this.currentScrollProgress) * Math.min(1, dt * 2.8);
+    // Read current scroll progress directly from container
+    if (this.storyContainer) {
+      const maxScroll = this.storyContainer.scrollHeight - this.storyContainer.clientHeight;
+      if (maxScroll > 0) {
+        this.targetScrollProgress = Math.min(1, Math.max(0, this.storyContainer.scrollTop / maxScroll));
+      }
+    }
 
-    // Map scroll progress (0..1) to route distance from baseDistance
-    const targetDistance = this.baseDistance + (this.currentScrollProgress * this.routeLength);
-    const diff = targetDistance - this.state.distance;
+    // Map scroll progress (0..1) directly to route distance from starting position
+    const targetDistance = this.startDistance + (this.targetScrollProgress * this.routeLength);
+    const distDiff = targetDistance - this.state.distance;
 
-    // If tram was in station mode, release when scrolling in either direction
-    if (this.state.mode === 'station' && Math.abs(diff) > 1.5) {
+    // If tram was stopped in station mode, release when scrolling
+    if (this.state.mode === 'station' && Math.abs(distDiff) > 0.5) {
       this.state.mode = 'driving';
       this.state.stationTime = 0;
       this.state.stationBoarded = true;
     }
 
-    // Limit maximum tram movement speed: gentle scenic cruise (max ~4.8 m/s or ~17 km/h)
-    const maxSpeedMetersPerSec = 4.8;
-    const maxStep = maxSpeedMetersPerSec * dt;
-    const step = Math.sign(diff) * Math.min(Math.abs(diff * 3.0 * dt), maxStep);
+    const prevDistance = this.state.distance;
+    
+    // Smooth responsive dampening: tram moves with scroll, stops when scroll stops
+    this.state.distance = this.damp(this.state.distance, targetDistance, 7.5, dt);
+    
+    const delta = this.state.distance - prevDistance;
+    const computedSpeed = (Math.abs(delta) / Math.max(dt, 0.001)) * 3.6;
 
-    if (Math.abs(diff) > 0.01) {
-      // When scrolling down: step > 0 (forward)
-      // When scrolling up: step < 0 (backward in reverse!)
-      this.state.distance += step;
-      // Set realistic speedometer display
-      const computedSpeed = (Math.abs(step) / Math.max(dt, 0.001)) * 3.6;
-      this.state.speed = Math.min(16, computedSpeed * 0.85);
+    if (Math.abs(delta) > 0.0015) {
+      this.state.speed = Math.min(28, computedSpeed * 0.9);
+      this.state.acceleration = (delta / dt) * 0.4;
     } else {
-      this.state.speed = Math.max(0, this.state.speed - dt * 3.0);
+      this.state.speed = this.damp(this.state.speed, 0, 9.0, dt);
+      if (this.state.speed < 0.1) this.state.speed = 0;
+      this.state.acceleration = 0;
     }
+  }
+
+  damp(a, b, rate, dt) {
+    return a + (b - a) * (1 - Math.exp(-rate * dt));
   }
 
   scrollToSection(sectionId) {
