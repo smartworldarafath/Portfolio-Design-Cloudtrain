@@ -18,19 +18,19 @@ export class ScrollController {
   initEvents() {
     // Wheel event for driving & story scroll
     window.addEventListener('wheel', (e) => {
-      // In Free Drive mode: Wheel drives the tram
+      // In Free Drive mode: Gentle, controlled cruise acceleration
       if (!this.isStoryMode) {
         e.preventDefault();
         const delta = e.deltaY;
         if (delta > 0) {
-          // Scroll Down = Accelerate forward
-          this.state.speed = Math.min(16, this.state.speed + 0.75);
-          this.state.throttle = Math.min(1, this.state.throttle + 0.25);
+          // Gentle acceleration: +0.12 per tick capped at 12 km/h
+          this.state.speed = Math.min(12, this.state.speed + 0.12);
+          this.state.throttle = Math.min(0.75, this.state.throttle + 0.08);
           if (window.audioGesture) window.audioGesture();
         } else if (delta < 0) {
-          // Scroll Up = Apply brake
-          this.state.speed = Math.max(0, this.state.speed - 0.95);
-          this.state.brake = Math.min(1, this.state.brake + 0.35);
+          // Gentle braking
+          this.state.speed = Math.max(0, this.state.speed - 0.22);
+          this.state.brake = Math.min(0.8, this.state.brake + 0.12);
           if (window.audioGesture) window.audioGesture();
         }
       }
@@ -66,13 +66,16 @@ export class ScrollController {
   update(dt) {
     if (!this.isStoryMode) return;
 
-    // Smoothly interpolate scroll progress towards target
-    const prev = this.currentScrollProgress;
-    this.currentScrollProgress += (this.targetScrollProgress - this.currentScrollProgress) * Math.min(1, dt * 4.5);
+    // Calm, relaxed interpolation for story scroll (never jerky)
+    this.currentScrollProgress += (this.targetScrollProgress - this.currentScrollProgress) * Math.min(1, dt * 2.2);
 
     // Map scroll progress (0..1) to route distance
     const targetDistance = this.currentScrollProgress * this.routeLength;
-    const diff = targetDistance - (this.state.distance % this.routeLength);
+    let diff = targetDistance - (this.state.distance % this.routeLength);
+
+    // Handle cyclic loop difference
+    if (diff > this.routeLength / 2) diff -= this.routeLength;
+    if (diff < -this.routeLength / 2) diff += this.routeLength;
 
     // If tram was stopped at station but user is scrolling away, release station lock
     if (this.state.mode === 'station' && Math.abs(diff) > 2.5) {
@@ -81,14 +84,18 @@ export class ScrollController {
       this.state.stationBoarded = true;
     }
 
-    // Set virtual speed for wheel and suspension effects
-    const delta = this.currentScrollProgress - prev;
-    const scrollSpeed = Math.abs(delta) / Math.max(dt, 0.001) * this.routeLength;
-    this.state.speed = Math.min(18, scrollSpeed * 0.45);
+    // Limit maximum tram movement speed: gentle scenic cruise (max ~4.2 m/s or ~15 km/h)
+    const maxSpeedMetersPerSec = 4.2;
+    const maxStep = maxSpeedMetersPerSec * dt;
+    const step = Math.sign(diff) * Math.min(Math.abs(diff * 2.2 * dt), maxStep);
 
-    // Smoothly ease distance along route
     if (Math.abs(diff) > 0.01) {
-      this.state.distance += diff * Math.min(1, dt * 5.0);
+      this.state.distance += step;
+      // Set gentle realistic speedometer display
+      const computedSpeed = (Math.abs(step) / Math.max(dt, 0.001)) * 3.6;
+      this.state.speed = Math.min(15, computedSpeed * 0.75);
+    } else {
+      this.state.speed = Math.max(0, this.state.speed - dt * 2.5);
     }
   }
 
